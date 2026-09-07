@@ -7,36 +7,37 @@ body {
 
 #board-wrap {
     position: relative;
-    width: 540px;
+    width: min(750px, 95vw);
     margin: 0 auto;
 }
 
 #board {
-    width: 540px;
-    height: 540px;
-    /* background-color: green; */
-
-    display: flex;
-    flex-wrap: wrap;
+    width: 100%;
+    aspect-ratio: 5 / 3;
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-template-rows: repeat(3, 1fr);
 
     background: url("./soil.png");
     background-size: cover;
     border: 3px solid white;
     border-radius: 25px;
+    overflow: hidden;
 }
 
 #board div {
-    /* board = 540 x 540, divide into 3x3 tiles --> 180 x 180 per div */
-    width: 180px; 
-    height: 180px;
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
     background-image: url("./pipe.png");
     background-size: cover;
 }
 
 #board div img {
-    /* all img tags inside tiles */
-    width: 100px;
-    height: 100px;
+    /* Keep characters proportional as the responsive tiles resize. */
+    width: 56%;
+    height: 56%;
     user-select: none;
     -moz-user-select: none;
     -webkit-user-drag: none;
@@ -48,6 +49,30 @@ body {
 .squashed {
     transform: scaleY(0.3);
 }
+
+#lives {
+    min-height: 42px;
+    margin: -8px 0 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.heart {
+    width: 38px;
+    height: auto;
+    image-rendering: pixelated;
+    filter: drop-shadow(2px 2px 0 rgba(80, 0, 0, 0.75));
+    transition: transform 160ms ease, opacity 160ms ease, filter 160ms ease;
+}
+
+.heart.lost {
+    opacity: 0.22;
+    transform: scale(0.82);
+    filter: grayscale(1);
+}
+
 /*Hammer cursor*/
 #board, #board div, #board div img {
     cursor: none; 

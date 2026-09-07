@@ -1,5 +1,5 @@
 let currMoleTile;
-let currPlantTile;
+const currPlantTiles = new Set();
 let score = 0;
 let gameOver = false;
 let gameStarted = false;
@@ -8,6 +8,19 @@ let sfxVolume = 1;
 let bgmVolume = 1;
 let sfxMuted = false;
 let bgmMuted = false;
+
+const BOARD_COLUMNS = 5;
+const BOARD_ROWS = 3;
+const TILE_COUNT = BOARD_COLUMNS * BOARD_ROWS;
+const MAX_LIVES = 3;
+const BASE_MOLE_DELAY = 1000;
+const BASE_PLANT_DELAY = 2000;
+const SPEED_MULTIPLIER_PER_LEVEL = 0.9;
+const MIN_MOLE_DELAY = 300;
+const MIN_PLANT_DELAY = 600;
+let lives = MAX_LIVES;
+let moleTimerId = null;
+let plantTimerId = null;
 
 const refreshVolumeSliders = [];
 
@@ -98,6 +111,7 @@ window.onload = function() {
     bgMusic.loop = true;
     loadAudioSettings();
     setupBoard();
+    updateLives();
     initStartScreen();
 
     const hammer = document.getElementById("hammer");
@@ -142,13 +156,16 @@ function restartGame() {
     }
 
     score = 0;
+    lives = MAX_LIVES;
     gameOver = false;
     currMoleTile = null;
-    currPlantTile = null;
+    currPlantTiles.clear();
+    stopSpawnTimers();
 
     document.getElementById("score").innerText = "0";
+    updateLives();
 
-    for (let i = 0; i < 9; i++) {
+    for (let i = 0; i < TILE_COUNT; i++) {
         document.getElementById(i.toString()).innerHTML = "";
     }
 
@@ -161,6 +178,7 @@ function restartGame() {
         return;
     }
 
+    scheduleSpawnTimers();
     bgMusic.currentTime = 0;
     if (!bgmMuted) {
         bgMusic.play().catch(() => {});
@@ -189,9 +207,50 @@ function startGame() {
     }
     gameStarted = true;
     document.getElementById("start-overlay").classList.add("hidden");
-    setInterval(setMole, 1000);
-    setInterval(setPlant, 2000);
+    scheduleSpawnTimers();
     bgMusic.play().catch(() => {});
+}
+
+function getSpeedLevel() {
+    return Math.floor(score / 100);
+}
+
+function getSpawnDelay(baseDelay, minimumDelay) {
+    const delay = baseDelay * Math.pow(SPEED_MULTIPLIER_PER_LEVEL, getSpeedLevel());
+    return Math.max(minimumDelay, Math.round(delay));
+}
+
+function getPlantCount() {
+    return Math.min(4, 1 + Math.floor(score / 200));
+}
+
+function stopSpawnTimers() {
+    clearTimeout(moleTimerId);
+    clearTimeout(plantTimerId);
+    moleTimerId = null;
+    plantTimerId = null;
+}
+
+function scheduleMole() {
+    clearTimeout(moleTimerId);
+    moleTimerId = setTimeout(() => {
+        setMole();
+        scheduleMole();
+    }, getSpawnDelay(BASE_MOLE_DELAY, MIN_MOLE_DELAY));
+}
+
+function schedulePlants() {
+    clearTimeout(plantTimerId);
+    plantTimerId = setTimeout(() => {
+        setPlants();
+        schedulePlants();
+    }, getSpawnDelay(BASE_PLANT_DELAY, MIN_PLANT_DELAY));
+}
+
+function scheduleSpawnTimers() {
+    stopSpawnTimers();
+    scheduleMole();
+    schedulePlants();
 }
 
 function initSettings() {
@@ -339,9 +398,9 @@ function initVolumeSliders() {
 }
 
 function setupBoard() {
-    //set up the grid in html
-    for (let i = 0; i < 9; i++) { //i goes from 0 to 8, stops at 9
-        //<div id="0-8"></div>
+    // Set up a 5-column by 3-row grid.
+    for (let i = 0; i < TILE_COUNT; i++) {
+        // <div id="0-14"></div>
         let tile = document.createElement("div");
         tile.id = i.toString();
         tile.addEventListener("click", selectTile);
@@ -349,10 +408,18 @@ function setupBoard() {
     }
 }
 
-function getRandomTile() {
-    //math.random --> 0-1 --> (0-1) * 9 = (0-9) --> round down to (0-8) integers
-    let num = Math.floor(Math.random() * 9);
-    return num.toString();
+function getShuffledTiles() {
+    const tiles = [];
+    for (let i = 0; i < TILE_COUNT; i++) {
+        tiles.push(document.getElementById(i.toString()));
+    }
+
+    for (let i = tiles.length - 1; i > 0; i--) {
+        const randomIndex = Math.floor(Math.random() * (i + 1));
+        [tiles[i], tiles[randomIndex]] = [tiles[randomIndex], tiles[i]];
+    }
+
+    return tiles;
 }
 
 function setMole() {
@@ -365,57 +432,106 @@ function setMole() {
     let mole = document.createElement("img");
     mole.src = "./monty-mole.png";
 
-    let num = getRandomTile();
-    if (currPlantTile && currPlantTile.id == num) {
+    const availableTiles = getShuffledTiles().filter((tile) => !currPlantTiles.has(tile));
+    if (availableTiles.length === 0) {
         return;
     }
-    currMoleTile = document.getElementById(num);
+    currMoleTile = availableTiles[0];
     currMoleTile.appendChild(mole);
-    moleSound.play();
+    moleSound.currentTime = 0;
+    moleSound.play().catch(() => {});
 }
 
-function setPlant() {
+function setPlants() {
     if (!gameStarted || gameOver || settingsOpen) {
         return;
     }
-    if (currPlantTile) {
-        currPlantTile.innerHTML = "";
-    }
-    let plant = document.createElement("img");
-    plant.src = "./piranha-plant.png";
 
-    let num = getRandomTile();
-    if (currMoleTile && currMoleTile.id == num) {
+    currPlantTiles.forEach((tile) => {
+        tile.innerHTML = "";
+    });
+    currPlantTiles.clear();
+
+    const availableTiles = getShuffledTiles().filter((tile) => tile !== currMoleTile);
+    availableTiles.slice(0, getPlantCount()).forEach((tile) => {
+        const plant = document.createElement("img");
+        plant.src = "./piranha-plant.png";
+        tile.appendChild(plant);
+        currPlantTiles.add(tile);
+    });
+
+    plantSound.currentTime = 0;
+    plantSound.play().catch(() => {});
+}
+
+function updateLives() {
+    const livesElement = document.getElementById("lives");
+    livesElement.innerHTML = "";
+
+    for (let i = 0; i < MAX_LIVES; i++) {
+        const heart = document.createElement("img");
+        const isLost = i >= lives;
+        heart.className = isLost ? "heart lost" : "heart";
+        heart.src = "./heart.png";
+        heart.alt = "";
+        livesElement.appendChild(heart);
+    }
+
+    livesElement.setAttribute(
+        "aria-label",
+        lives + " of " + MAX_LIVES + " lives remaining"
+    );
+}
+
+function animateAndRemoveTarget(tile) {
+    const img = tile.querySelector("img");
+    if (!img) {
         return;
     }
-    currPlantTile = document.getElementById(num);
-    currPlantTile.appendChild(plant);
-    plantSound.play();
+
+    img.classList.add("squashed");
+    setTimeout(() => {
+        if (tile.contains(img)) {
+            img.remove();
+        }
+    }, 180);
 }
 
 function selectTile() {
     if (!gameStarted || gameOver || settingsOpen) {
         return;
     }
+
     if (this == currMoleTile) {
+        // Clear the active reference immediately so one mole can score only once.
+        currMoleTile = null;
+        const previousSpeedLevel = getSpeedLevel();
         score += 10;
-        document.getElementById("score").innerText = score.toString(); //update score html
-        hitSound.play();
+        document.getElementById("score").innerText = score.toString();
+        hitSound.currentTime = 0;
+        hitSound.play().catch(() => {});
+        animateAndRemoveTarget(this);
 
-        let img = this.querySelector("img");
-        if (img) {
-            img.classList.add("squashed");
+        if (getSpeedLevel() !== previousSpeedLevel) {
+            scheduleSpawnTimers();
         }
+        return;
     }
-    else if (this == currPlantTile) {
-        loseSound.play();
-        bgMusic.pause();
-        document.getElementById("score").innerText = "GAME OVER: " + score.toString(); //update score html
-        gameOver = true;
 
-        let img = this.querySelector("img");
-        if (img) {
-            img.classList.add("squashed");
+    if (currPlantTiles.has(this)) {
+        // One plant can remove only one life, even if it is clicked repeatedly.
+        currPlantTiles.delete(this);
+        lives = Math.max(0, lives - 1);
+        updateLives();
+        loseSound.currentTime = 0;
+        loseSound.play().catch(() => {});
+        animateAndRemoveTarget(this);
+
+        if (lives === 0) {
+            bgMusic.pause();
+            document.getElementById("score").innerText = "GAME OVER: " + score.toString();
+            gameOver = true;
+            stopSpawnTimers();
         }
     }
 }
