@@ -1,6 +1,7 @@
 let currMoleTile;
 const currPlantTiles = new Set();
 let score = 0;
+let bestRecord = 0;
 let gameOver = false;
 let gameStarted = false;
 let settingsOpen = false;
@@ -105,7 +106,7 @@ function saveAudioSettings() {
             bgmMuted,
         }));
     } catch (e) {
-        // ignore quota / private mode errors
+    
     }
 }
 
@@ -178,8 +179,8 @@ function restartGame() {
     lives = MAX_LIVES;
     gameOver = false;
     currMoleTile = null;
-    currMoleType = "regular"; // Reset loại chuột
-    currMoleHp = 0;          // Reset HP chuột
+    currMoleType = "regular"; 
+    currMoleHp = 0;     
     currPlantTiles.clear();
     stopSpawnTimers();
     if (!gameStarted) {
@@ -407,9 +408,8 @@ function initVolumeSliders() {
 }
 
 function setupBoard() {
-    // Set up a 5-column by 3-row grid.
     for (let i = 0; i < TILE_COUNT; i++) {
-        // <div id="0-14"></div>
+
         let tile = document.createElement("div");
         tile.id = i.toString();
         tile.addEventListener("click", selectTile);
@@ -440,17 +440,17 @@ function setMole() {
     }
     let mole = document.createElement("img");
 
-    // Phân bổ tỷ lệ xuất hiện: 60% Thường | 30% Đội mũ | 10% Chuột vàng
+  
     let rand = Math.random();
-    if (rand < 0.60) {          // 60% Chuột thường
+    if (rand < 0.60) {        
         currMoleType = "regular";
         currMoleHp = 1;
         mole.src = "./monty-mole.png";
-    } else if (rand < 0.90) {   // 30% Chuột đội mũ
+    } else if (rand < 0.90) {   
         currMoleType = "hat";
         currMoleHp = 2;
         mole.src = "./mouse_hat.png";
-    } else {                    // 10% Chuột vàng
+    } else {                  
         currMoleType = "gold";
         currMoleHp = 1;
         mole.src = "./mouse_gold.png";
@@ -536,17 +536,21 @@ function selectTile() {
         let img = this.querySelector("img");
 
         if (currMoleHp > 0) {
-            // Lần đập thứ 1 của chuột đội mũ -> văng mũ thành chuột thường
+           
             if (img) img.src = "./monty-mole.png";
         } else {
-            // Chuột bị tiêu diệt hoàn toàn
+    
             currMoleTile = null;
             const previousSpeedLevel = getSpeedLevel();
-            
-            // Chuột vàng +20 điểm, các loại khác +10 điểm
+
             score += (currMoleType === "gold") ? 20 : 10;
+
+            if (score > bestRecord) {
+                bestRecord = score;
+                document.getElementById("best-record").innerText = "Best Record: " + bestRecord.toString();
+            }
             document.getElementById("score").innerText = score.toString();
-            
+
             animateAndRemoveTarget(this);
 
             if (getSpeedLevel() !== previousSpeedLevel) {
@@ -557,7 +561,6 @@ function selectTile() {
     }
 
     if (currPlantTiles.has(this)) {
-        // Giữ nguyên toàn bộ logic đập cây piranha ban đầu
         currPlantTiles.delete(this);
         lives = Math.max(0, lives - 1);
         updateLives();
