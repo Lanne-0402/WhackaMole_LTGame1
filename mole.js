@@ -1,6 +1,7 @@
 let currMoleTile;
 const currPlantTiles = new Set();
 let score = 0;
+let bestRecord = 0;
 let gameOver = false;
 let gameStarted = false;
 let settingsOpen = false;
@@ -507,6 +508,10 @@ function selectTile() {
         currMoleTile = null;
         const previousSpeedLevel = getSpeedLevel();
         score += 10;
+        if (score > bestRecord) {
+            bestRecord = score;
+            document.getElementById("best-record").innerText = "Best Record: " + bestRecord.toString();
+        }
         document.getElementById("score").innerText = score.toString();
         hitSound.currentTime = 0;
         hitSound.play().catch(() => {});
