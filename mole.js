@@ -20,9 +20,9 @@ const TILE_COUNT = BOARD_COLUMNS * BOARD_ROWS;
 const MAX_LIVES = 3;
 const BASE_MOLE_DELAY = 1000;
 const BASE_PLANT_DELAY = 2000;
-const SPEED_MULTIPLIER_PER_LEVEL = 0.9;
-const MIN_MOLE_DELAY = 300;
-const MIN_PLANT_DELAY = 600;
+const SPEED_MULTIPLIER_PER_LEVEL = 0.93;
+const MIN_MOLE_DELAY = 450;
+const MIN_PLANT_DELAY = 900;
 let lives = MAX_LIVES;
 let moleTimerId = null;
 let plantTimerId = null;
@@ -228,7 +228,13 @@ function startGame() {
 }
 
 function getSpeedLevel() {
-    return Math.floor(score / 100);
+    if (score < 100) {
+        return 0;
+    }
+
+    // Speed increases at 100, 300, 500, 700... points.
+    // Plant-count increases stay at 200, 400 and 600 points.
+    return Math.floor((score - 100) / 200) + 1;
 }
 
 function getSpawnDelay(baseDelay, minimumDelay) {
