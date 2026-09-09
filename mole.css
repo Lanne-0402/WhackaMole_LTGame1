@@ -150,7 +150,8 @@ body {
 }
 
 #settings-btn,
-#restart-btn {
+#restart-btn,
+#help-btn {
     position: relative;
     padding: 0;
     border: none;
@@ -161,7 +162,8 @@ body {
 }
 
 #settings-btn img,
-#restart-btn .control-box {
+#restart-btn .control-box,
+#help-btn img {
     width: 56px;
     height: 56px;
     display: block;
@@ -182,7 +184,7 @@ body {
     pointer-events: none;
 }
 
-#settings-overlay {
+#settings-overlay, #help-overlay {
     position: fixed;
     inset: 0;
     display: flex;
@@ -192,7 +194,7 @@ body {
     z-index: 200;
 }
 
-#settings-overlay.hidden {
+#settings-overlay.hidden, #help-overlay.hidden {
     display: none;
 }
 
@@ -369,4 +371,20 @@ body {
 
 .slider-thumb:active {
     cursor: grabbing;
+}
+#help-popup {
+    position: relative;
+    width: min(520px, 90vw);
+    text-align: center;
+}
+
+.help-popup-bg {
+    width: 100%;
+    display: block;
+}
+
+.help-hint {
+    margin-top: 10px;
+    color: white;
+    font-size: 14px;
 }

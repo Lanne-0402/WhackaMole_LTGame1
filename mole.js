@@ -5,6 +5,7 @@ let bestRecord = 0;
 let gameOver = false;
 let gameStarted = false;
 let settingsOpen = false;
+let helpOpen = false;
 let sfxVolume = 1;
 let bgmVolume = 1;
 let sfxMuted = false;
@@ -138,6 +139,7 @@ window.onload = function() {
     });
 
     initSettings();
+    initHelp();
     initRestart();
 }
 
@@ -189,16 +191,20 @@ function restartGame() {
 function initStartScreen() {
     const overlay = document.getElementById("start-overlay");
 
-    overlay.addEventListener("click", startGame);
+    overlay.addEventListener("click",() =>{
+        if (!gameStarted) {
+            openHelp();
+        }
+    });
 
     document.addEventListener("keydown", (e) => {
-        if (gameStarted || settingsOpen) {
+        if (gameStarted || settingsOpen || helpOpen) {
             return;
         }
         if (e.key === "Tab" || e.key === "Shift") {
             return;
         }
-        startGame();
+        openHelp();
     });
 }
 
@@ -276,7 +282,30 @@ function initSettings() {
 
     initVolumeSliders();
 }
+function initHelp() {
+    const overlay = document.getElementById("help-overlay");
+    const popup = document.getElementById("help-popup");
+    const helpBtn = document.getElementById("help-btn");
 
+    helpBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+
+        if (settingsOpen) {
+            closeSettings();
+        }
+
+        openHelp();
+    });
+    overlay.addEventListener("click", (e) => {
+        if (e.target === overlay) {
+            closeHelp();
+        }
+    });
+
+    popup.addEventListener("click", (e) => {
+        e.stopPropagation();
+    });
+}
 function initVolumeSliders() {
     document.querySelectorAll(".volume-row").forEach((row) => {
         const channel = row.dataset.channel;
@@ -539,4 +568,29 @@ function selectTile() {
             stopSpawnTimers();
         }
     }
+}
+function closeHelp() {
+    helpOpen = false;
+
+    const overlay = document.getElementById("help-overlay");
+    overlay.classList.add("hidden");
+    overlay.setAttribute("aria-hidden", "true");
+
+    // Nếu đây là lần mở hướng dẫn từ màn hình Start
+    // thì bắt đầu game sau khi đóng hướng dẫn.
+    if (!gameStarted) {
+        startGame();
+    }
+}
+
+function openHelp() {
+    helpOpen = true;
+
+    const overlay = document.getElementById("help-overlay");
+    const hammer = document.getElementById("hammer");
+
+    overlay.classList.remove("hidden");
+    overlay.setAttribute("aria-hidden", "false");
+
+    hammer.style.display = "none";
 }
